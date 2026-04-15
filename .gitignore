@@ -1,0 +1,43 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+.clang_complete
+.gcc-flags.json
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code session state
+.claude/
+
+# KiCad
+*.bak
+*-backups/
+_autosave-*
+*-cache.lib
+fp-info-cache
+*.lck
+*.kicad_prl
+_saved_*
+
+# Build artefacts
+*.o
+*.a
+*.hex
+*.bin
+*.elf
+*.map
+*.lst
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
