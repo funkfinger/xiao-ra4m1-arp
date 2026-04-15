@@ -51,7 +51,7 @@ Three licenses, one per artefact class:
 | Area | License | File |
 |---|---|---|
 | Firmware | MIT | [`LICENSE-firmware`](LICENSE-firmware) |
-| Hardware (KiCad, panel artwork) | CERN-OHL-S v2 | [`LICENSE-hardware`](LICENSE-hardware) |
-| Documentation | CC-BY-SA 4.0 | [`LICENSE-docs`](LICENSE-docs) |
+| Hardware (KiCad, panel artwork) | Apache 2.0 | [`LICENSE-hardware`](LICENSE-hardware) |
+| Documentation | CC-BY 4.0 | [`LICENSE-docs`](LICENSE-docs) |
 
-Chosen to match the surrounding Eurorack DIY ecosystem (Hagiwo, Modulove, WGD) so downstream hackers can remix both sides without license-hunting.
+All three are permissive — derivative works, commercial use, and closed-source forks are all allowed with attribution. No share-alike or copyleft obligations.

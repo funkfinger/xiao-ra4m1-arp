@@ -26,3 +26,8 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 - `CHANGELOG.md` started with Keep a Changelog format; convention to update on every commit
 - Versioning scheme adopted: SemVer for firmware with scoped tags (`arp/vX.Y.Z`), `Rev N.M` for hardware (see decisions.md §12)
 - Story 001 completed — repo scaffolded, initial commit pushed to GitHub
+
+### Changed
+- Hardware license swapped from CERN-OHL-S v2 (strongly reciprocal copyleft) to Apache 2.0 (permissive)
+- Docs license swapped from CC-BY-SA 4.0 (share-alike) to CC-BY 4.0 (attribution only)
+- All three licenses (firmware MIT, hardware Apache 2.0, docs CC-BY 4.0) are now permissive — no copyleft or share-alike obligations on derivatives

@@ -71,10 +71,10 @@ Rigol DS1054Z covers gate edges, DAC settling time, any signal glitches.
 | Area | License |
 |---|---|
 | Firmware | MIT |
-| Hardware (KiCad, panel artwork) | CERN-OHL-S v2 |
-| Docs | CC-BY-SA 4.0 |
+| Hardware (KiCad, panel artwork) | Apache 2.0 |
+| Docs | CC-BY 4.0 |
 
-**Why:** matches the ecosystem we're building on (Hagiwo, Modulove, WGD Melon). Downstream hackers can remix both sides without license-hunting.
+**Why:** all three are permissive — derivative works, commercial use, and closed-source forks are allowed with attribution. No share-alike obligations. Originally considered CERN-OHL-S v2 + CC-BY-SA 4.0 (the Hagiwo/Modulove/WGD ecosystem default) but swapped to permissive across the board so downstream use faces no copyleft constraint.
 
 ### 8. CI: GitHub Actions running host tests
 
