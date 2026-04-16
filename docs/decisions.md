@@ -25,7 +25,7 @@ xiao-ra4m1-{arp,module}/
 
 ### 2. PlatformIO as the build system
 
-Using Seeed's platform fork: `platform = https://github.com/Seeed-Studio/platform-seeedboards.git`, `board = seeed_xiao_ra4m1`. The XIAO RA4M1 is not in PlatformIO's official registry, but Seeed's fork provides a working board definition bundled with `ArduinoCore-renesas`.
+Using Seeed's platform fork: `platform = https://github.com/Seeed-Studio/platform-seeedboards.git`, `board = seeed-xiao-ra4m1`. The XIAO RA4M1 is not in PlatformIO's official registry, but Seeed's fork provides a working board definition bundled with `ArduinoCore-renesas`.
 
 **Fallback:** Arduino IDE or `arduino-cli` if PlatformIO hits a wall.
 

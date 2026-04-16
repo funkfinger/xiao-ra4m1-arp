@@ -32,11 +32,18 @@ jobs:
       - name: Install PlatformIO
         run: pip install --upgrade platformio
 
-      - name: Run host tests (firmware/arp)
+      - name: Compile firmware (firmware/arp)
         run: |
           if [ -f firmware/arp/platformio.ini ]; then
+            pio run -d firmware/arp
+          else
+            echo "firmware/arp/platformio.ini not present yet."
+          fi
+
+      - name: Run host tests (firmware/arp)
+        run: |
+          if [ -d firmware/arp/test ] && grep -q '\[env:native\]' firmware/arp/platformio.ini 2>/dev/null; then
             pio test -d firmware/arp -e native
           else
-            echo "firmware/arp/platformio.ini not present yet — Story 002 will add it."
-            echo "CI scaffolding verified: workflow runs, PlatformIO installs, matrix job completes."
+            echo "No host tests yet — Story 003 will add them."
           fi

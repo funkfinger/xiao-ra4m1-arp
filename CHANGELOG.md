@@ -31,3 +31,11 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 - Hardware license swapped from CERN-OHL-S v2 (strongly reciprocal copyleft) to Apache 2.0 (permissive)
 - Docs license swapped from CC-BY-SA 4.0 (share-alike) to CC-BY 4.0 (attribution only)
 - All three licenses (firmware MIT, hardware Apache 2.0, docs CC-BY 4.0) are now permissive — no copyleft or share-alike obligations on derivatives
+- Corrected board identifier from `seeed_xiao_ra4m1` (underscores) to `seeed-xiao-ra4m1` (hyphens) — matches the platform manifest in `Seeed-Studio/platform-seeedboards`
+
+### Added (Story 002 — XIAO blinks)
+- `firmware/arp/platformio.ini` — Seeed platform fork, `seeed-xiao-ra4m1` board, Arduino framework
+- `firmware/arp/src/main.cpp` — minimal 1 Hz blinky toggling `LED_BUILTIN` (active-LOW)
+- `firmware/arp/README.md` expanded with build, upload, and DFU recovery instructions
+- `.github/workflows/ci.yml` updated: compile firmware via `pio run -d firmware/arp`, run host tests conditionally when a `test/` dir and `[env:native]` exist
+- Story 002 bench-verified 2026-04-15 — onboard LED blinks at 1 Hz on physical XIAO RA4M1; DFU upload 15 s, 33 464 bytes
