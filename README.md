@@ -31,7 +31,7 @@ The repo may later host additional firmwares for the same hardware platform (e.g
 
 ## Toolchain
 
-- **Firmware:** [PlatformIO](https://platformio.org/) with Seeed's platform fork (`platform = https://github.com/Seeed-Studio/platform-seeedboards.git`, `board = seeed_xiao_ra4m1`)
+- **Firmware:** [PlatformIO](https://platformio.org/) with Seeed's platform fork (`platform = https://github.com/Seeed-Studio/platform-seeedboards.git`, `board = seeed-xiao-ra4m1`)
 - **Tests:** host-side unit tests via `pio test -e native` for pure-logic modules (scales, arp, generative engine). Hardware abstraction layer is bench-verified.
 - **Hardware:** KiCad (project deferred — see decisions)
 - **CI:** GitHub Actions runs host tests on push and PR
