@@ -38,3 +38,4 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 - `firmware/arp/src/main.cpp` — minimal 1 Hz blinky toggling `LED_BUILTIN` (active-LOW)
 - `firmware/arp/README.md` expanded with build, upload, and DFU recovery instructions
 - `.github/workflows/ci.yml` updated: compile firmware via `pio run -d firmware/arp`, run host tests conditionally when a `test/` dir and `[env:native]` exist
+- Story 002 bench-verified 2026-04-15 — onboard LED blinks at 1 Hz on physical XIAO RA4M1; DFU upload 15 s, 33 464 bytes
