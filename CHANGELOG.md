@@ -39,3 +39,11 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 - `firmware/arp/README.md` expanded with build, upload, and DFU recovery instructions
 - `.github/workflows/ci.yml` updated: compile firmware via `pio run -d firmware/arp`, run host tests conditionally when a `test/` dir and `[env:native]` exist
 - Story 002 bench-verified 2026-04-15 — onboard LED blinks at 1 Hz on physical XIAO RA4M1; DFU upload 15 s, 33 464 bytes
+
+### Added (Story 003 — DAC ramp + scale quantiser)
+- `firmware/arp/lib/scales/scales.h` / `scales.cpp` — pure-logic scale quantiser with 6 scales (Major, Natural Minor, Pentatonic Major/Minor, Dorian, Chromatic). Nearest-note semantics with equidistant tie-break downward. No Arduino dependencies.
+- `firmware/arp/test/test_scales/test_scales.cpp` — 23 GoogleTest cases covering in-scale passthrough, chromatic identity, octave invariance, tie-break direction, nearest-not-floor pentatonic behaviour, boundary values, output-always-in-scale invariants
+- `firmware/arp/platformio.ini` — `[env:native]` added for host-side GoogleTest; `test_ignore = *` on embedded env
+- `firmware/arp/src/main.cpp` — DAC ramp: 0→4095 linear sawtooth at ~10 Hz on DAC0 (D0/A0)
+- `docs/bench-log.md` — DAC ramp measurements: 0→3.3 V, 8.56 Hz, linear, no glitches (scope screenshot: `requirements/DS1Z_QuickPrint1.png`)
+- `requirements/DS1Z_QuickPrint1.png` — Rigol DS1054Z scope capture of DAC ramp
