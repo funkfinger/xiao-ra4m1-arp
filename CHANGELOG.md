@@ -47,3 +47,10 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 - `firmware/arp/src/main.cpp` — DAC ramp: 0→4095 linear sawtooth at ~10 Hz on DAC0 (D0/A0)
 - `docs/bench-log.md` — DAC ramp measurements: 0→3.3 V, 8.56 Hz, linear, no glitches (scope screenshot: `requirements/DS1Z_QuickPrint1.png`)
 - `requirements/DS1Z_QuickPrint1.png` — Rigol DS1054Z scope capture of DAC ramp
+
+### Added (Story 004 — V/Oct tracks across octaves, in progress)
+- `docs/calibration.md` — op-amp circuit spec (MCP6002, gain 1.27× with R2=2.7k/R1=10k), wiring table, target voltage table, and bench measurements
+- `firmware/arp/src/main.cpp` — V/Oct calibration firmware stepping C3–C7 (0–4V) with serial output; gain corrected to 1.261 from bench measurement
+- `requirements/DS1Z_QuickPrint3.png` — scope capture of V/Oct staircase (5 levels, 0–4V, 2s/step)
+- Spec §2.5.2 gain error identified: stated R2=12.1k (gain 2.21×) but correct gain for 0–3.3V → 0–4V is 1.27× (R2=2.7k); documented in calibration.md
+- Bench-verified voltages within ±2 mV after gain correction; pitch test pending
