@@ -58,3 +58,14 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 - R4 (1kΩ) loading issue identified and documented — bypassed on breadboard; PCB note: reduce to 100Ω or remove
 - Spec §2.5.2 gain error documented: 2.21× incorrect, correct gain is ~1.27× for 0–4V range
 - Story 004 complete
+
+### Added (Story 005 — Arp plays up-pattern, v0.1)
+- `firmware/arp/lib/arp/arp.h` / `arp.cpp` — pure-logic arp state machine: up-order, 4-note chord (root, M3, 5th, octave), wrapping
+- `firmware/arp/test/test_arp/test_arp.cpp` — 9 GoogleTest cases (sequence, wrap, reset, different roots, step tracking)
+- `firmware/arp/src/main.cpp` — integrated arp: 120 BPM internal clock, quantised V/Oct output, 50% gate duty via BC548C NPN
+- `requirements/DS1Z_QuickPrint4.png` — scope capture of V/Oct staircase (4 levels, 120 BPM)
+- `requirements/DS1Z_QuickPrint5.png` — scope capture of V/Oct + gate dual-channel
+- `requirements/arp.m4a` — audio recording of working arpeggiator via Plaits
+
+### Fixed
+- Gate polarity: NPN common-emitter inverts signal; swapped firmware HIGH/LOW so gate output is HIGH (5V) during note-on
