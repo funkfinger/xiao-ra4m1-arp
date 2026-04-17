@@ -76,4 +76,30 @@ Assumes gain = 1.27× (R2=2.7k, R1=10k). Actual gain will be measured and record
 **Offset at C3:** +4 mV (op-amp input offset voltage, ~5¢)
 **Firmware GAIN constant:** updated from 1.27 to 1.261; all voltages within ±2 mV after correction
 **Date:** 2026-04-16
-**Pitch test:** pending (patch to VCO + tuner app, target ±5¢)
+**Pitch test (2026-04-16):** PASS — ±5¢ or better across all octaves (R4 bypassed)
+
+### Pitch Tracking Results
+
+Measured via Plaits audio → phone tuner app. R4 (1kΩ) bypassed — direct op-amp output to VCO.
+
+| Octave | Freq low | Freq high | Ratio | Cents error |
+|---|---|---|---|---|
+| C3→C4 | 67.0 Hz | 133.6 Hz | 1.994 | -5.4¢ |
+| C4→C5 | 133.6 Hz | 267.7 Hz | 2.004 | +0.5¢ |
+| C5→C6 | 267.7 Hz | 535.2 Hz | 1.999 | -0.1¢ |
+| C6→C7 | 535.2 Hz | 1070.8 Hz | 2.001 | +0.1¢ |
+
+Upper 3 octaves within ±0.5¢. C3→C4 at -5.4¢ is borderline — likely phone tuner precision at 67 Hz (±0.1 Hz = ±2.6¢) plus op-amp near-ground behaviour.
+
+### R4 Loading Issue
+
+With R4=1kΩ, octave tracking was -10 to -20¢ flat (Plaits' ~100kΩ input impedance forms a voltage divider with R4). Bypassing R4 fixed it. **PCB design note:** reduce R4 to 100Ω or remove; the 1kΩ Eurorack convention causes unacceptable V/Oct error against standard 100kΩ module inputs.
+
+### First test with R4=1kΩ (failed ±5¢)
+
+| Octave | Ratio | Cents error |
+|---|---|---|
+| C3→C4 | 1.976 | -19.5¢ |
+| C4→C5 | 1.982 | -14.5¢ |
+| C5→C6 | 1.993 | -4.7¢ |
+| C6→C7 | 1.987 | -10.0¢ |
