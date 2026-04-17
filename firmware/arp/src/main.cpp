@@ -1,77 +1,64 @@
 #include <Arduino.h>
+#include "scales.h"
+#include "arp.h"
 
-// V/Oct calibration — Story 004.
-// Steps through C3–C7 (0V–4V), holding each for 2 seconds.
-// Prints note name, DAC count, expected voltage to Serial.
-// Measure op-amp output (after R4) with multimeter or scope.
+// ─── Pin assignments (spec §2.3) ───────────────────────────────────
+#define PIN_DAC DAC                             // D0/A0 — V/Oct output
+static constexpr int PIN_GATE     = 6;         // D6 — gate output via NPN
+static constexpr int DAC_BITS     = 12;
+static constexpr int DAC_MAX      = (1 << DAC_BITS) - 1;
 
-static constexpr int DAC_PIN = DAC;
-static constexpr int DAC_RESOLUTION = 12;
-static constexpr int DAC_MAX = (1 << DAC_RESOLUTION) - 1;
+// ─── Calibration (from Story 004 bench measurement) ────────────────
+static constexpr float GAIN       = 1.261f;    // measured op-amp gain
+static constexpr float DAC_VREF   = 3.3f;
+static constexpr int   MIDI_ROOT  = 48;        // C3 = 0V output
 
-static constexpr float GAIN = 1.261f;      // measured; nominal 1.27 (2.7k/10k)
-static constexpr float DAC_VREF = 3.3f;
-static constexpr int MIDI_ROOT = 48;        // C3 = 0V output
-static constexpr float VOLT_PER_OCTAVE = 1.0f;
-static constexpr float SEMITONES_PER_OCTAVE = 12.0f;
-static constexpr unsigned long HOLD_MS = 2000;
+// ─── Clock ─────────────────────────────────────────────────────────
+static constexpr float BPM        = 120.0f;
+static constexpr unsigned long STEP_MS = static_cast<unsigned long>(60000.0f / BPM);
+static constexpr float GATE_DUTY  = 0.5f;
+static constexpr unsigned long GATE_ON_MS = static_cast<unsigned long>(STEP_MS * GATE_DUTY);
 
-struct CalNote {
-    const char* name;
-    int midi;
-};
+// ─── Engine ────────────────────────────────────────────────────────
+static arp::Arp arpeggiator(MIDI_ROOT);
 
-static constexpr CalNote notes[] = {
-    {"C3", 48},
-    {"C4", 60},
-    {"C5", 72},
-    {"C6", 84},
-    {"C7", 96},
-};
-static constexpr int NUM_NOTES = sizeof(notes) / sizeof(notes[0]);
-
-int midiToDac(int midiNote) {
-    float targetVolts = (midiNote - MIDI_ROOT) / SEMITONES_PER_OCTAVE * VOLT_PER_OCTAVE;
-    float dacVolts = targetVolts / GAIN;
-    int dacCount = static_cast<int>((dacVolts / DAC_VREF) * DAC_MAX + 0.5f);
-    if (dacCount < 0) dacCount = 0;
-    if (dacCount > DAC_MAX) dacCount = DAC_MAX;
-    return dacCount;
+int midiToDac(uint8_t midiNote) {
+    float targetV = static_cast<float>(midiNote - MIDI_ROOT) / 12.0f;
+    float dacV = targetV / GAIN;
+    int count = static_cast<int>((dacV / DAC_VREF) * DAC_MAX + 0.5f);
+    if (count < 0) count = 0;
+    if (count > DAC_MAX) count = DAC_MAX;
+    return count;
 }
 
 void setup() {
-    analogWriteResolution(DAC_RESOLUTION);
+    analogWriteResolution(DAC_BITS);
+    pinMode(PIN_GATE, OUTPUT);
+    digitalWrite(PIN_GATE, LOW);
     pinMode(LED_BUILTIN, OUTPUT);
-    Serial.begin(115200);
-    delay(1000);
-    Serial.println("=== V/Oct Calibration — Story 004 ===");
-    Serial.print("Gain: ");
-    Serial.println(GAIN, 3);
-    Serial.println("Measure op-amp output with multimeter.");
-    Serial.println();
+    digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void loop() {
-    for (int i = 0; i < NUM_NOTES; ++i) {
-        int dac = midiToDac(notes[i].midi);
-        float expectedV = (notes[i].midi - MIDI_ROOT) / SEMITONES_PER_OCTAVE * VOLT_PER_OCTAVE;
+    uint8_t rawNote = arpeggiator.current();
+    uint8_t note = arp::quantize(rawNote, arp::Scale::Major);
+    int dac = midiToDac(note);
 
-        analogWrite(DAC_PIN, dac);
+    // CV: set pitch
+    analogWrite(PIN_DAC, dac);
 
-        digitalWrite(LED_BUILTIN, LOW);
+    // Gate on — NPN common-emitter inverts: LOW on base = transistor off = collector HIGH (5V)
+    digitalWrite(PIN_GATE, LOW);
+    digitalWrite(LED_BUILTIN, LOW);
 
-        Serial.print(notes[i].name);
-        Serial.print("  MIDI=");
-        Serial.print(notes[i].midi);
-        Serial.print("  DAC=");
-        Serial.print(dac);
-        Serial.print("  Expected=");
-        Serial.print(expectedV, 3);
-        Serial.println("V");
+    delay(GATE_ON_MS);
 
-        delay(HOLD_MS);
-        digitalWrite(LED_BUILTIN, HIGH);
-        delay(100);
-    }
-    Serial.println("--- cycle ---");
+    // Gate off — HIGH on base = transistor on = collector LOW (0V)
+    digitalWrite(PIN_GATE, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
+
+    delay(STEP_MS - GATE_ON_MS);
+
+    // Advance to next note
+    arpeggiator.advance();
 }
