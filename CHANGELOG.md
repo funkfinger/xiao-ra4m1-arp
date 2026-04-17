@@ -12,6 +12,12 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 
 ## [Unreleased]
 
+---
+
+## [arp/v0.1.0] — 2026-04-16
+
+First playable firmware. 4-note up-arpeggio (C3-E3-G3-C4) at 120 BPM with calibrated V/Oct and gated output. Breadboard-verified through Mutable Instruments Plaits.
+
 ### Added
 - Repo scaffold: `firmware/arp/`, `hardware/`, `docs/` directory tree with placeholder READMEs in empty dirs
 - Three license files at repo root: `LICENSE-firmware` (MIT), `LICENSE-hardware` (CERN-OHL-S v2), `LICENSE-docs` (CC-BY-SA 4.0)
