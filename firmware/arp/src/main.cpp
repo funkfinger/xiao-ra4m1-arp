@@ -8,6 +8,7 @@
 static constexpr int PIN_GATE     = 6;          // D6 — gate output via NPN
 static constexpr int PIN_TEMPO    = 5;          // D5 — tempo pot (RV3) — spec §2.3 said D8 but D8 lacks ADC; remapped to D5
 static constexpr int PIN_SCALE    = 2;          // D2/A2 — scale pot (RV1)
+static constexpr int PIN_ORDER    = 3;          // D3/A3 — arp order pot (was RV2 chaos in spec; repurposed)
 static constexpr int DAC_BITS     = 12;
 static constexpr int DAC_MAX      = (1 << DAC_BITS) - 1;
 static constexpr int ADC_BITS     = 14;
@@ -24,6 +25,7 @@ static constexpr int   STEPS_PER_BEAT = 4;      // 16th-note arp steps at BPM
 // ─── Engine ────────────────────────────────────────────────────────
 static arp::Arp arpeggiator(MIDI_ROOT);
 static arp::Scale currentScale = arp::Scale::Major;
+static arp::Order currentOrder = arp::Order::Up;
 
 int midiToDac(uint8_t midiNote) {
     float targetV = static_cast<float>(midiNote - MIDI_ROOT) / 12.0f;
@@ -46,6 +48,12 @@ arp::Scale readScale(arp::Scale current) {
     return arp::scaleFromPot(pot, current);
 }
 
+arp::Order readOrder(arp::Order current) {
+    int raw = analogRead(PIN_ORDER);
+    float pot = static_cast<float>(raw) / static_cast<float>(ADC_MAX);
+    return arp::orderFromPot(pot, current);
+}
+
 void setup() {
     analogWriteResolution(DAC_BITS);
     analogReadResolution(ADC_BITS);
@@ -53,6 +61,7 @@ void setup() {
     digitalWrite(PIN_GATE, HIGH);  // gate off (NPN inverts)
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
+    arpeggiator.setSeed(static_cast<uint32_t>(millis() | 1u));
 }
 
 void loop() {
@@ -62,6 +71,11 @@ void loop() {
     unsigned long gateOnMs = static_cast<unsigned long>(stepMs * GATE_DUTY);
 
     currentScale = readScale(currentScale);
+    arp::Order newOrder = readOrder(currentOrder);
+    if (newOrder != currentOrder) {
+        arpeggiator.setOrder(newOrder);
+        currentOrder = newOrder;
+    }
 
     uint8_t rawNote = arpeggiator.current();
     uint8_t note = arp::quantize(rawNote, currentScale);
