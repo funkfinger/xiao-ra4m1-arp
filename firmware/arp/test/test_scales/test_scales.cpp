@@ -180,3 +180,102 @@ TEST(Quantize, OutputAlwaysInScale_NaturalMinor)     { expect_output_always_in_s
 TEST(Quantize, OutputAlwaysInScale_PentatonicMajor)  { expect_output_always_in_scale(Scale::PentatonicMajor, pitch_class_set(kPentatonicMajor)); }
 TEST(Quantize, OutputAlwaysInScale_PentatonicMinor)  { expect_output_always_in_scale(Scale::PentatonicMinor, pitch_class_set(kPentatonicMinor)); }
 TEST(Quantize, OutputAlwaysInScale_Dorian)           { expect_output_always_in_scale(Scale::Dorian, pitch_class_set(kDorian)); }
+
+// ──────────────────────────────────────────────────────────────────────────
+// scaleFromPot — zone mapping and hysteresis.
+// ──────────────────────────────────────────────────────────────────────────
+
+using arp::scaleFromPot;
+using arp::kScaleHysteresis;
+
+TEST(ScaleFromPot, PotZeroIsMajor) {
+    EXPECT_EQ(scaleFromPot(0.0f, Scale::Major), Scale::Major);
+    EXPECT_EQ(scaleFromPot(0.0f, Scale::Chromatic), Scale::Major);
+}
+
+TEST(ScaleFromPot, PotOneIsChromatic) {
+    EXPECT_EQ(scaleFromPot(1.0f, Scale::Chromatic), Scale::Chromatic);
+    EXPECT_EQ(scaleFromPot(1.0f, Scale::Major), Scale::Chromatic);
+}
+
+TEST(ScaleFromPot, ZoneCenters) {
+    constexpr float w = 1.0f / 6.0f;
+    // Centre of each zone, starting from Major(0). Pass current=different
+    // scale so the hysteresis band doesn't override the mapping.
+    EXPECT_EQ(scaleFromPot(w * 0.5f, Scale::Chromatic),        Scale::Major);
+    EXPECT_EQ(scaleFromPot(w * 1.5f, Scale::Chromatic),        Scale::NaturalMinor);
+    EXPECT_EQ(scaleFromPot(w * 2.5f, Scale::Chromatic),        Scale::PentatonicMajor);
+    EXPECT_EQ(scaleFromPot(w * 3.5f, Scale::Major),            Scale::PentatonicMinor);
+    EXPECT_EQ(scaleFromPot(w * 4.5f, Scale::Major),            Scale::Dorian);
+    EXPECT_EQ(scaleFromPot(w * 5.5f, Scale::Major),            Scale::Chromatic);
+}
+
+TEST(ScaleFromPot, ClampsBelowZero) {
+    EXPECT_EQ(scaleFromPot(-0.5f, Scale::Chromatic), Scale::Major);
+}
+
+TEST(ScaleFromPot, ClampsAboveOne) {
+    EXPECT_EQ(scaleFromPot(1.5f, Scale::Major), Scale::Chromatic);
+}
+
+TEST(ScaleFromPot, HysteresisHoldsInsideBand) {
+    // Major's zone is [0, 1/6). With current=Major, hysteresis extends
+    // the upper bound to 1/6 + 0.02 = 0.1867. Pot at 0.18 should still
+    // return Major.
+    constexpr float w = 1.0f / 6.0f;
+    EXPECT_EQ(scaleFromPot(w + 0.01f, Scale::Major), Scale::Major);
+}
+
+TEST(ScaleFromPot, HysteresisReleasesOutsideBand) {
+    // Pot past the extended boundary (1/6 + 0.02 = 0.1867) must flip.
+    constexpr float w = 1.0f / 6.0f;
+    EXPECT_EQ(scaleFromPot(w + kScaleHysteresis + 0.005f, Scale::Major),
+              Scale::NaturalMinor);
+}
+
+TEST(ScaleFromPot, HysteresisWorksDownward) {
+    // Current = NaturalMinor (zone 1). Extended lower bound = 1/6 - 0.02.
+    // Pot at 1/6 - 0.01 should still return NaturalMinor.
+    constexpr float w = 1.0f / 6.0f;
+    EXPECT_EQ(scaleFromPot(w - 0.01f, Scale::NaturalMinor), Scale::NaturalMinor);
+
+    // Pot past extended lower bound must flip down.
+    EXPECT_EQ(scaleFromPot(w - kScaleHysteresis - 0.005f, Scale::NaturalMinor),
+              Scale::Major);
+}
+
+TEST(ScaleFromPot, SweepVisitsAllSixScales) {
+    // Sweeping pot 0→1 with no hysteresis cheat (pass current = result-so-far)
+    // should visit every scale in order exactly once.
+    std::vector<Scale> visited;
+    Scale current = Scale::Major;
+    visited.push_back(current);
+    for (float p = 0.0f; p <= 1.0f; p += 0.001f) {
+        Scale next = scaleFromPot(p, current);
+        if (next != current) {
+            visited.push_back(next);
+            current = next;
+        }
+    }
+    ASSERT_EQ(visited.size(), 6u);
+    EXPECT_EQ(visited[0], Scale::Major);
+    EXPECT_EQ(visited[1], Scale::NaturalMinor);
+    EXPECT_EQ(visited[2], Scale::PentatonicMajor);
+    EXPECT_EQ(visited[3], Scale::PentatonicMinor);
+    EXPECT_EQ(visited[4], Scale::Dorian);
+    EXPECT_EQ(visited[5], Scale::Chromatic);
+}
+
+TEST(ScaleFromPot, JitterAtBoundaryDoesNotFlip) {
+    // Simulate ADC noise around the Major/NaturalMinor boundary.
+    // Current = Major. Pot oscillates ±0.005 around 1/6 — inside hysteresis.
+    // Should NEVER flip to NaturalMinor.
+    constexpr float boundary = 1.0f / 6.0f;
+    Scale current = Scale::Major;
+    for (int i = 0; i < 100; ++i) {
+        float noise = ((i % 2) == 0) ? 0.005f : -0.005f;
+        Scale next = scaleFromPot(boundary + noise, current);
+        EXPECT_EQ(next, Scale::Major);
+        current = next;
+    }
+}

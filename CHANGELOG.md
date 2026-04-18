@@ -12,6 +12,13 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 
 ## [Unreleased]
 
+### Added (Story 007 — Scale pot)
+- `scaleFromPot(float pot, Scale current)` added to `lib/scales/` — pure-logic pot-to-scale mapping with 6 equal zones and ±2% boundary hysteresis
+- `kScaleHysteresis = 0.02f` — hysteresis constant exposed in header
+- 10 new GoogleTest cases: zone centres, clamping, hysteresis both directions, sweep visits all 6 in order, boundary jitter doesn't flip scales
+- `src/main.cpp` — reads scale pot on D2/A2 per spec §2.3, updates active scale each loop iteration
+- Total host tests: 57 (15 tempo + 9 arp + 33 scales)
+
 ### Docs
 - Spec revised to Rev 0.1a with bench-verified corrections from Stories 003–006. No PCB produced yet so no physical Rev change; Rev 0.1a is a paper revision. Changes marked inline and summarised in new "Spec Revision History" section at the top of `docs/generative-arp-module.md`:
   - §2.3 pin table — RV3 (tempo) moved from D8/A8 to D5 (D8 is not ADC-capable); D4 and D8 become reserved future-expansion pins
