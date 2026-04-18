@@ -1,7 +1,18 @@
 # Generative Arpeggiator — Eurorack CV/Gate Module
 
-> **Rev 0.1 — April 2026**
-> 4 HP · XIAO RA4M1 · 4 Jacks · 3 Pots · WS2812B RGB · Reversible Panel
+> **Rev 0.1a — April 2026** · 4 HP · XIAO RA4M1 · 4 Jacks · 3 Pots · WS2812B RGB · Reversible Panel
+
+## Spec Revision History
+
+- **Rev 0.1 (original):** initial AI-generated spec from pre-breadboard planning.
+- **Rev 0.1a (2026-04-18):** bench-verified corrections after Stories 003–006. No PCB produced yet, so no physical Rev change. Changes marked inline as "Rev 0.1a correction." Summary:
+  - §2.3 pin table — RV3 (tempo) moved from D8/A8 to D5 (D8 is not ADC-capable on XIAO RA4M1).
+  - §2.4.2 CV input — now uses its own D1/A1 ADC channel; the 5-ADC limit means pot/CV sharing isn't feasible. Divider ratio corrected to 100 k / 220 k (was 100 k / 100 k).
+  - §2.5.1 output range — corrected from C2–C6 (requires -1 V, impossible single-supply) to C3–C7 (0–4 V).
+  - §2.5.2 op-amp gain — R2 corrected from 12.1 kΩ (gain 2.21×, maxes at 7.3 V) to 2.7 kΩ (gain 1.27×, maxes at 4.0 V). R3 trim pot removed. R4 reduced from 1 kΩ to 100 Ω (1 kΩ caused 10–20¢ V/Oct error against 100 kΩ Eurorack inputs).
+  - §4.4 semitone voltage — corrected "33.3 mV" to 83.3 mV (V/Oct standard is 1 V/octave).
+  - §4.5 tempo range — corrected to 40–300 BPM (was 20–300) with exponential curve; 16th-note subdivision.
+  - §6 BOM — R2, R3, R4 values updated.
 
 ---
 
@@ -71,19 +82,27 @@ The Renesas RA4M1 was chosen over the RP2350 specifically for its onboard true 1
 
 ### 2.3 Pin Assignment
 
+> **Rev 0.1a correction (2026-04-18):** the original table assigned RV3 (tempo) to D8/A8, but **D8 is not ADC-capable** on the XIAO RA4M1. Only D0, D1, D2, D3, and D5 support `analogRead`. Pot RV3 moved to D5 (was reserved for unused I2C SCL). D8 becomes a general-purpose GPIO available for future expansion.
+
 | XIAO Pin | RA4M1 GPIO | Direction | Function | Notes |
 |---|---|---|---|---|
 | D0 / A0 | P014 | Out | DAC0 → V/Oct CV | True 12-bit DAC; feeds op-amp scaling stage |
-| D1 / A1 | P000 | In | CV In (J2) | 14-bit ADC; 0–5V → 0–3.3V via divider |
-| D2 / A2 | P001 | In | Pot RV1 — Scale select | 14-bit ADC; wiper 0–3.3V |
-| D3 / A3 | P002 | In | Pot RV2 — Chaos amount | 14-bit ADC; wiper 0–3.3V |
+| D1 / A1 | P000 | In (analog) | CV In (J2) | 14-bit ADC; 0–5V → 0–3.3V via divider |
+| D2 / A2 | P001 | In (analog) | Pot RV1 — Scale select | 14-bit ADC; wiper 0–3.3V |
+| D3 / A3 | P002 | In (analog) | Pot RV2 — Chaos amount | 14-bit ADC; wiper 0–3.3V |
+| D4 | P101 | — | Reserved | Available for future expansion (e.g., orientation sensor per §8); non-ADC |
+| D5 / A5 | P102 | In (analog) | Pot RV3 — Rate/Tempo | 14-bit ADC; wiper 0–3.3V |
 | D6 | P301 | Out | Gate Out (J4) | 3.3V logic → 5V via NPN transistor |
-| D7 | P303 | In | Clock / Gate In (J1) | Protected digital input |
-| D8 / A8 | P304 | In | Pot RV3 — Rate/Tempo | 14-bit ADC; wiper 0–3.3V |
+| D7 | P303 | In (digital) | Clock / Gate In (J1) | Protected digital input |
+| D8 | P304 | — | Reserved | Available for future expansion; **non-ADC** |
 | D9 | P203 | Out | WS2812B RGB data | 330 Ω series resistor |
-| D10 | P205 | In | Tact switch SW1 | INPUT_PULLUP in firmware |
-| D4 | P101 | — | I2C SDA (reserved) | Available for future expansion / orientation sensing |
-| D5 | P102 | — | I2C SCL (reserved) | Available for future expansion |
+| D10 | P205 | In (digital) | Tact switch SW1 | INPUT_PULLUP in firmware |
+
+**ADC-capable pins on this board:** D0, D1, D2, D3, D5 (five total). Every analog input (3 pots + 1 CV) uses four of these; D0 is the DAC. There are no free analog pins — any additional knob or CV input will require an external ADC (e.g., MCP3008 via SPI) or a pin-multiplexing scheme.
+
+**Digital-only pins:** D4, D6, D7, D8, D9, D10. These can drive LEDs, gate outputs, switches, and bit-banged protocols (WS2812, UART, SPI) but cannot read analog voltages.
+
+**I²C:** the RA4M1's hardware I²C is on D4/D5, but D5 is now used for RV3 (tempo pot). Bit-banged I²C on other pins is possible if needed later (e.g., for EEPROM or an external ADC), but not planned for Rev 0.1.
 
 ### 2.4 Input Circuits
 
@@ -100,9 +119,7 @@ Eurorack gate signals are 0–5V or 0–10V unipolar. RA4M1 GPIO tolerates 3.3V 
 
 #### 2.4.2 CV Input (J2) — Analog
 
-CV input shares an ADC channel with Pot RV3 following the MOD2 convention. When a jack is inserted, the CV signal overrides the pot. Input range is 0–5V Eurorack, scaled to 0–2.5V for the ADC via a 100 kΩ / 100 kΩ resistor divider. Protection diodes as per J1.
-
-> **Note:** The op-amp output stage inverts the signal. CV HIGH = lower ADC reading. Firmware compensates.
+CV input is on its own ADC channel (D1/A1) — the original spec's Hagiwo-style pot/CV sharing won't work here because the XIAO RA4M1 has only 5 ADC pins and we need 4 independent reads (3 pots + CV). Input range is 0–5V Eurorack, scaled to 0–3.3V for the ADC via a 100 kΩ / 220 kΩ resistor divider (ratio ≈ 0.66, mapping 5 V to 3.3 V). Protection diodes as per J1.
 
 ### 2.5 V/Oct Output Stage
 
@@ -110,23 +127,30 @@ The RA4M1 DAC0 pin outputs 0–3.3V (12-bit = 4096 steps). This is scaled and bu
 
 #### 2.5.1 Target Output Range
 
-Unipolar 0–4.0V output covering ~4 octaves (C2–C6), adequate for a melodic arpeggiator. Bipolar ±5V is a stretch goal (see Section 7).
+Unipolar 0–4.0 V output covering 4 octaves from **C3 (MIDI 48, 0 V)** to **C7 (MIDI 96, 4 V)**, adequate for a melodic arpeggiator. Single-supply op-amps cannot output negative voltages, so MIDI notes below the root map to the minimum output (near 0 V). Bipolar ±5 V is a stretch goal (see Section 7).
+
+> **Rev 0.1a correction (2026-04-18):** the original spec said "C2–C6" but that requires -1 V at C2, which is impossible on a single-supply op-amp. Corrected to C3–C7 (0–4 V).
 
 #### 2.5.2 Op-Amp Scaling Circuit
 
-Op-amp: **MCP6002** (single-supply, rail-to-rail, 5V powered). Non-inverting amplifier with offset trim.
+Op-amp: **MCP6002** (single-supply, rail-to-rail, 5 V powered). Non-inverting amplifier.
 
 | Component | Value | Function |
 |---|---|---|
-| U2 | MCP6002T-I/SN SOIC-8 | Dual op-amp; single-supply; rail-to-rail; 5V powered |
+| U2 | MCP6002-I/P DIP-8 (breadboard) or MCP6002T-I/SN SOIC-8 (PCB) | Dual op-amp; single-supply; rail-to-rail; 5 V powered |
 | R1 | 10 kΩ | Input resistor |
-| R2 | 12.1 kΩ | Gain resistor — sets gain ≈ 2.21x to map 0–3.3V → 0–4.0V |
-| R3 | 100 kΩ trim pot | Fine offset adjustment for V/Oct calibration |
-| R4 | 1 kΩ | Output series resistor (standard Eurorack output impedance) |
+| R2 | 2.7 kΩ | Gain resistor — sets gain ≈ 1.27× to map 0–3.3 V → 0–4.0 V |
+| R4 | 100 Ω | Output series resistor (see PCB note below) |
 | C1 | 100 nF | Op-amp supply decoupling |
 | C2 | 10 nF | Op-amp output stability / HF rolloff |
 
-> **Note:** Gain formula: `Vout = Vdac × (1 + R2/R1)`. With R1=10k, R2=12.1k: gain = 2.21. Adjust R3 trim for zero-offset at power-up.
+> **Gain formula:** `Vout = Vdac × (1 + R2/R1)`. With R1=10 k, R2=2.7 k: nominal gain 1.27×. Measured gain on breadboard (5 % resistors): 1.261. Firmware's `GAIN` constant captures the measured value.
+>
+> **Rev 0.1a correction (2026-04-18):** the original spec said R2=12.1 kΩ (gain 2.21×) which gives 7.3 V at DAC max — not the stated 4 V. Correct value is R2=2.7 kΩ (gain 1.27×). See `docs/calibration.md` for bench data.
+>
+> **Rev 0.1a correction (2026-04-18):** R4 reduced from 1 kΩ to 100 Ω. A 1 kΩ output resistor forms a ~1 % voltage divider against typical 100 kΩ Eurorack V/Oct inputs, causing 10–20¢ per-octave flat error. 100 Ω keeps short-circuit protection without degrading V/Oct tracking.
+>
+> **R3 trim pot removed** — the original spec used R3 to trim offset at power-up. In practice, single-supply MCP6002 input offset voltage (~4 mV) is close enough to zero for ±5¢ MVP tracking, and firmware can apply a calibrated GAIN constant instead. R3 is reinstatable for post-MVP precision (±2¢ stretch goal).
 
 ### 2.6 Gate Output Stage (J4)
 
@@ -256,19 +280,27 @@ All pitch output is quantised to the selected scale before DAC write. This is th
 
 ### 4.4 V/Oct DAC Output
 
-```cpp
-// MIDI note to DAC count
-// MIDI_ROOT = 48 (C3 = 0V output)
-// VOLT_RANGE = calibrated full-scale range of op-amp output (e.g. 4.0)
+The DAC generates the raw 0–3.3 V signal; the op-amp scales it up by the calibrated `GAIN`. So for a target V/Oct output in volts:
 
-dacCount = (midiNote - MIDI_ROOT) * (4096.0 / (12.0 * VOLT_RANGE));
+```cpp
+// MIDI_ROOT = 48 (C3 = 0V V/Oct output)
+// GAIN      = measured op-amp gain (nominal 1.27, bench 1.261)
+// DAC_VREF  = 3.3V (RA4M1 AVCC)
+// DAC_MAX   = 4095 (12-bit)
+
+float targetVolts = (midiNote - MIDI_ROOT) / 12.0f;      // V/Oct output
+float dacVolts    = targetVolts / GAIN;                   // DAC output before op-amp
+int   dacCount    = (dacVolts / DAC_VREF) * DAC_MAX;      // clamp to [0, DAC_MAX]
 ```
 
-12-bit DAC over 4V range = ~0.98 mV/step. One semitone = ~33.3 mV. Resolution ≈ 34 steps/semitone — more than sufficient for clean V/Oct tracking.
+**Resolution:** the DAC spans 0–3.3 V × 1.27 gain ≈ 4.19 V useful range, divided into 4096 steps ≈ **1.02 mV/step at the V/Oct output**. One semitone = 83.3 mV (1 V / 12). Resolution ≈ **82 steps per semitone** (≈1.2¢ per DAC count) — far finer than needed for clean V/Oct tracking.
+
+> **Rev 0.1a correction (2026-04-18):** the original spec said "one semitone = 33.3 mV." That value assumed a 0.4 V/octave scaling, which is wrong. V/Oct standard is 1 V/octave = 83.3 mV/semitone.
 
 ### 4.5 Clock & Timing
 
-- **Internal clock:** software timer from RV3 reading, 20–300 BPM
+- **Internal clock:** software timer from RV3 reading, **40–300 BPM** with exponential curve (each 1/3 of pot rotation doubles BPM)
+- **Subdivision:** each arp step is a 16th note, so 4 steps per beat at BPM
 - **External clock:** rising edge on J1 advances sequencer one step; overrides internal clock when patched
 - **Gate length:** fixed at 50% duty cycle of step length (adjustable firmware constant)
 - **Button short press:** reset sequence to step 1
@@ -328,9 +360,9 @@ dacCount = (midiNote - MIDI_ROOT) * (4096.0 / (12.0 * VOLT_RANGE));
 | RV1–RV3 | Potentiometer | B100K Alpha RD901F 9mm | 3 | Tayda Electronics |
 | SW1 | Tact Switch | 6x6mm 13mm SPST-NO | 1 | Tayda Electronics |
 | R1 | Resistor | 10 kΩ 0402 | 1 | JLCPCB Basic |
-| R2 | Resistor | 12.1 kΩ 0402 1% | 1 | JLCPCB Basic |
-| R3 | Trim Pot | 100 kΩ 3296W | 1 | AliExpress |
-| R4 | Resistor | 1 kΩ 0402 (V/Oct output) | 1 | JLCPCB Basic |
+| R2 | Resistor | 2.7 kΩ 0402 1% | 1 | JLCPCB Basic — was 12.1 kΩ in Rev 0.1, corrected in Rev 0.1a |
+| R3 | Trim Pot | (removed in Rev 0.1a) | 0 | No longer fitted; reinstatable for ±2¢ post-MVP precision |
+| R4 | Resistor | 100 Ω 0402 (V/Oct output) | 1 | JLCPCB Basic — was 1 kΩ in Rev 0.1, corrected in Rev 0.1a |
 | R5 | Resistor | 330 Ω 0402 (WS2812B data) | 1 | JLCPCB Basic |
 | R6 | Resistor | 1 kΩ 0402 (transistor base) | 1 | JLCPCB Basic |
 | R7 | Resistor | 10 kΩ 0402 (gate pull-up) | 1 | JLCPCB Basic |
@@ -370,7 +402,7 @@ dacCount = (midiNote - MIDI_ROOT) * (4096.0 / (12.0 * VOLT_RANGE));
 
 ### 7.3 Design Decisions Pending
 
-- [ ] Verify RA4M1 DAC0 is broken out to XIAO pin D0 — check Seeed schematic
+- [x] Verify RA4M1 DAC0 is broken out to XIAO pin D0 — confirmed Story 003 (linear 0–3.3 V ramp scope-verified)
 - [ ] Bench-verify op-amp gain resistor values with actual DAC output
 - [ ] Panel finish — matte black PCB panel vs anodised aluminium
 - [ ] Confirm WS2812B vs 3mm LED choice for Rev 1 (recommend WS2812B)

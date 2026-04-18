@@ -12,6 +12,16 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 
 ## [Unreleased]
 
+### Docs
+- Spec revised to Rev 0.1a with bench-verified corrections from Stories 003–006. No PCB produced yet so no physical Rev change; Rev 0.1a is a paper revision. Changes marked inline and summarised in new "Spec Revision History" section at the top of `docs/generative-arp-module.md`:
+  - §2.3 pin table — RV3 (tempo) moved from D8/A8 to D5 (D8 is not ADC-capable); D4 and D8 become reserved future-expansion pins
+  - §2.4.2 CV input — own ADC channel (D1/A1); divider ratio corrected 100 k / 220 k
+  - §2.5.1 output range — C3–C7 (0–4 V), was C2–C6 which requires -1 V
+  - §2.5.2 op-amp — R2 = 2.7 kΩ (gain 1.27×), was 12.1 kΩ (gain 2.21×, maxes at 7.3 V); R3 removed; R4 = 100 Ω (was 1 kΩ, caused V/Oct loading error)
+  - §4.4 semitone voltage — 83.3 mV, was 33.3 mV
+  - §4.5 tempo — 40–300 BPM exponential, 16th-note subdivision
+  - §6 BOM — R2, R3, R4 updated
+
 ### Added (Story 006 — Tempo pot)
 - `firmware/arp/lib/tempo/tempo.h` / `tempo.cpp` — pure-logic tempo mapping: `bpmFromPot(float)` with exponential curve (40–300 BPM, doubles every 1/3 of rotation), `stepMsFromBpm(int)` inverse with clamping
 - `firmware/arp/test/test_tempo/test_tempo.cpp` — 15 GoogleTest cases covering endpoints, clamping, exponential curve, monotonicity, geometric mean midpoint, stepMs
