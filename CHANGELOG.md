@@ -12,6 +12,15 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 
 ## [Unreleased]
 
+### Added (Story 006 — Tempo pot)
+- `firmware/arp/lib/tempo/tempo.h` / `tempo.cpp` — pure-logic tempo mapping: `bpmFromPot(float)` with exponential curve (40–300 BPM, doubles every 1/3 of rotation), `stepMsFromBpm(int)` inverse with clamping
+- `firmware/arp/test/test_tempo/test_tempo.cpp` — 15 GoogleTest cases covering endpoints, clamping, exponential curve, monotonicity, geometric mean midpoint, stepMs
+- `firmware/arp/src/main.cpp` — reads tempo pot on D5, uses live BPM for step timing, 16th-note subdivision (4 steps per beat)
+
+### Fixed
+- Tempo pot remapped from D8 (spec §2.3) to D5 — D8 is not ADC-capable on XIAO RA4M1. Only D0, D1, D2, D3, D5 support `analogRead`. Spec §2.3 pin table needs full revision.
+- BPM semantics corrected: each arp step is now a 16th note (beatMs / 4), not a full beat. Arp feels musically correct at any BPM.
+
 ---
 
 ## [arp/v0.1.0] — 2026-04-16
