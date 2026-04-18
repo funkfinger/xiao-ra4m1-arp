@@ -12,6 +12,19 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 
 ## [Unreleased]
 
+### Added (Story 008 — Arp orders)
+- `Order` enum added to `lib/arp/` with 6 values: Up, Down, UpDown, DownUp, Skip, Random
+- Pattern table driven — any pattern length supported (4 and 6 used today). Rate-independent timing (each step = 16th note, odd-length patterns produce polyrhythms against 4/4)
+- Random order uses an internal LCG seeded at boot from `millis()`; deterministic for host tests
+- `setOrder()` restarts pattern from step 0; `setSeed()` reseeds Random
+- `orderFromPot(float, Order)` — pot-to-order mapping with ±2% boundary hysteresis, mirrors `scaleFromPot`
+- 14 new GoogleTest cases covering all orders, deterministic Random, setOrder restart behaviour, in-chord invariants across all orders, pot zone mapping, hysteresis
+- `src/main.cpp` reads pot on D3/A3 each loop iteration, calls `setOrder()` when value changes
+- Total host tests: 71 (15 tempo + 23 arp + 33 scales)
+
+### Changed
+- Spec §2.3 assigned D3/A3 to RV2 (chaos); repurposed temporarily for arp-order selection while chaos design is still open. Documented for revisit when chaos lands or encoder UI is adopted.
+
 ### Added (Story 007 — Scale pot)
 - `scaleFromPot(float pot, Scale current)` added to `lib/scales/` — pure-logic pot-to-scale mapping with 6 equal zones and ±2% boundary hysteresis
 - `kScaleHysteresis = 0.02f` — hysteresis constant exposed in header
