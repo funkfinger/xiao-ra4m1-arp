@@ -29,6 +29,29 @@ constexpr bool in_scale_pc(uint8_t pitchClass, uint16_t mask) {
 
 }  // namespace
 
+Scale scaleFromPot(float pot, Scale current) {
+    if (pot < 0.0f) pot = 0.0f;
+    if (pot > 1.0f) pot = 1.0f;
+
+    constexpr int   kNumScales = static_cast<int>(Scale::Count);
+    constexpr float kZoneWidth = 1.0f / kNumScales;
+
+    const int currentIdx = static_cast<int>(current);
+    const float nominalLower = currentIdx * kZoneWidth;
+    const float nominalUpper = (currentIdx + 1) * kZoneWidth;
+    const float extendedLower = nominalLower - kScaleHysteresis;
+    const float extendedUpper = nominalUpper + kScaleHysteresis;
+
+    if (pot >= extendedLower && pot <= extendedUpper) {
+        return current;
+    }
+
+    int newIdx = static_cast<int>(pot / kZoneWidth);
+    if (newIdx < 0) newIdx = 0;
+    if (newIdx >= kNumScales) newIdx = kNumScales - 1;
+    return static_cast<Scale>(newIdx);
+}
+
 uint8_t quantize(uint8_t midiNote, Scale scale) {
     const uint16_t mask = mask_for(scale);
     if (in_scale_pc(midiNote % 12u, mask)) {

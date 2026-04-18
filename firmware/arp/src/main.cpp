@@ -7,6 +7,7 @@
 #define PIN_DAC DAC                             // D0/A0 — V/Oct output
 static constexpr int PIN_GATE     = 6;          // D6 — gate output via NPN
 static constexpr int PIN_TEMPO    = 5;          // D5 — tempo pot (RV3) — spec §2.3 said D8 but D8 lacks ADC; remapped to D5
+static constexpr int PIN_SCALE    = 2;          // D2/A2 — scale pot (RV1)
 static constexpr int DAC_BITS     = 12;
 static constexpr int DAC_MAX      = (1 << DAC_BITS) - 1;
 static constexpr int ADC_BITS     = 14;
@@ -22,6 +23,7 @@ static constexpr int   STEPS_PER_BEAT = 4;      // 16th-note arp steps at BPM
 
 // ─── Engine ────────────────────────────────────────────────────────
 static arp::Arp arpeggiator(MIDI_ROOT);
+static arp::Scale currentScale = arp::Scale::Major;
 
 int midiToDac(uint8_t midiNote) {
     float targetV = static_cast<float>(midiNote - MIDI_ROOT) / 12.0f;
@@ -36,6 +38,12 @@ int readBpm() {
     int raw = analogRead(PIN_TEMPO);
     float pot = static_cast<float>(raw) / static_cast<float>(ADC_MAX);
     return arp::tempo::bpmFromPot(pot);
+}
+
+arp::Scale readScale(arp::Scale current) {
+    int raw = analogRead(PIN_SCALE);
+    float pot = static_cast<float>(raw) / static_cast<float>(ADC_MAX);
+    return arp::scaleFromPot(pot, current);
 }
 
 void setup() {
@@ -53,8 +61,10 @@ void loop() {
     unsigned long stepMs = beatMs / STEPS_PER_BEAT;
     unsigned long gateOnMs = static_cast<unsigned long>(stepMs * GATE_DUTY);
 
+    currentScale = readScale(currentScale);
+
     uint8_t rawNote = arpeggiator.current();
-    uint8_t note = arp::quantize(rawNote, arp::Scale::Major);
+    uint8_t note = arp::quantize(rawNote, currentScale);
     int dac = midiToDac(note);
 
     analogWrite(PIN_DAC, dac);
