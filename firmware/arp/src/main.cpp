@@ -1,23 +1,24 @@
 #include <Arduino.h>
 #include "scales.h"
 #include "arp.h"
+#include "tempo.h"
 
 // ─── Pin assignments (spec §2.3) ───────────────────────────────────
 #define PIN_DAC DAC                             // D0/A0 — V/Oct output
-static constexpr int PIN_GATE     = 6;         // D6 — gate output via NPN
+static constexpr int PIN_GATE     = 6;          // D6 — gate output via NPN
+static constexpr int PIN_TEMPO    = 5;          // D5 — tempo pot (RV3) — spec §2.3 said D8 but D8 lacks ADC; remapped to D5
 static constexpr int DAC_BITS     = 12;
 static constexpr int DAC_MAX      = (1 << DAC_BITS) - 1;
+static constexpr int ADC_BITS     = 14;
+static constexpr int ADC_MAX      = (1 << ADC_BITS) - 1;
 
 // ─── Calibration (from Story 004 bench measurement) ────────────────
-static constexpr float GAIN       = 1.261f;    // measured op-amp gain
+static constexpr float GAIN       = 1.261f;     // measured op-amp gain
 static constexpr float DAC_VREF   = 3.3f;
-static constexpr int   MIDI_ROOT  = 48;        // C3 = 0V output
+static constexpr int   MIDI_ROOT  = 48;         // C3 = 0V output
 
-// ─── Clock ─────────────────────────────────────────────────────────
-static constexpr float BPM        = 120.0f;
-static constexpr unsigned long STEP_MS = static_cast<unsigned long>(60000.0f / BPM);
 static constexpr float GATE_DUTY  = 0.5f;
-static constexpr unsigned long GATE_ON_MS = static_cast<unsigned long>(STEP_MS * GATE_DUTY);
+static constexpr int   STEPS_PER_BEAT = 4;      // 16th-note arp steps at BPM
 
 // ─── Engine ────────────────────────────────────────────────────────
 static arp::Arp arpeggiator(MIDI_ROOT);
@@ -31,34 +32,44 @@ int midiToDac(uint8_t midiNote) {
     return count;
 }
 
+int readBpm() {
+    int raw = analogRead(PIN_TEMPO);
+    float pot = static_cast<float>(raw) / static_cast<float>(ADC_MAX);
+    return arp::tempo::bpmFromPot(pot);
+}
+
 void setup() {
     analogWriteResolution(DAC_BITS);
+    analogReadResolution(ADC_BITS);
     pinMode(PIN_GATE, OUTPUT);
-    digitalWrite(PIN_GATE, LOW);
+    digitalWrite(PIN_GATE, HIGH);  // gate off (NPN inverts)
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void loop() {
+    int bpm = readBpm();
+    unsigned long beatMs = arp::tempo::stepMsFromBpm(bpm);
+    unsigned long stepMs = beatMs / STEPS_PER_BEAT;
+    unsigned long gateOnMs = static_cast<unsigned long>(stepMs * GATE_DUTY);
+
     uint8_t rawNote = arpeggiator.current();
     uint8_t note = arp::quantize(rawNote, arp::Scale::Major);
     int dac = midiToDac(note);
 
-    // CV: set pitch
     analogWrite(PIN_DAC, dac);
 
-    // Gate on — NPN common-emitter inverts: LOW on base = transistor off = collector HIGH (5V)
+    // Gate on — NPN common-emitter inverts
     digitalWrite(PIN_GATE, LOW);
     digitalWrite(LED_BUILTIN, LOW);
 
-    delay(GATE_ON_MS);
+    delay(gateOnMs);
 
-    // Gate off — HIGH on base = transistor on = collector LOW (0V)
+    // Gate off
     digitalWrite(PIN_GATE, HIGH);
     digitalWrite(LED_BUILTIN, HIGH);
 
-    delay(STEP_MS - GATE_ON_MS);
+    delay(stepMs - gateOnMs);
 
-    // Advance to next note
     arpeggiator.advance();
 }
