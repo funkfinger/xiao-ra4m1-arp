@@ -12,6 +12,11 @@ Section keys: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`, 
 
 ## [Unreleased]
 
+### Docs
+- Major design pivot documented in `docs/design-pivot-2026-04-19.md`: UI changes from 3 pots to 1 tempo pot + rotary encoder + OLED display, form factor shrinks from 4HP to 2HP (Hagiwo MOD2 template), analog inputs shift toward CV modulation (1 pot + 3 CVs instead of 3 pots + 1 CV). Hardware I²C moved off D4/D5 (preserving D5's ADC) to software I²C on D8/D9. Onboard RGB NeoPixel (`RGB_BUILTIN` on P112) replaces the planned external WS2812B — no extra pin cost. Decision is documented but **not yet implemented** — Stories 007/008 pot-based UI remains functional on main.
+- Board gotcha captured: XIAO RA4M1 silkscreens D4 as "A4" but it is NOT ADC-capable. Verified via Seeed forum threads. Only D0, D1, D2, D3, D5 support `analogRead()`.
+- Memory index updated with `design_pivot_2026_04_19.md` pointing at the full design doc.
+
 ### Added (Story 008 — Arp orders)
 - `Order` enum added to `lib/arp/` with 6 values: Up, Down, UpDown, DownUp, Skip, Random
 - Pattern table driven — any pattern length supported (4 and 6 used today). Rate-independent timing (each step = 16th note, odd-length patterns produce polyrhythms against 4/4)
